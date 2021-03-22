@@ -1,0 +1,41 @@
+name: Docker
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  IMAGE_NAME: brumalia/db
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run tests
+        run: |
+          docker build . --file Dockerfile
+
+  push:
+    needs: test
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME:latest
+
+      - name: Log into registry
+        run: echo "${{ secrets.docker_token }}" | docker login -u ${{ secrets.docker_username }} --password-stdin
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_NAME:latest
